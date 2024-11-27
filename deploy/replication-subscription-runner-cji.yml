@@ -1,0 +1,72 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: insights-app-cjis
+objects:
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdApp
+  metadata:
+    name: ${CLOWDAPP_NAME}
+  spec:
+    envName: ${ENV_NAME}
+    dependencies:
+      - ${DEPENDENT_APP_NAME}
+    jobs:
+    - name: "replication-subscription-runner"
+      restartPolicy: Never
+      podSpec:
+        image: ${INVENTORY_IMAGE}:${INVENTORY_IMAGE_TAG}
+        args: ["./replication_subscription_runner.py"]
+        env:
+          - name: ILOG_LEVEL
+            value: ${LOG_LEVEL}
+          - name: CLOWDER_ENABLED
+            value: "true"
+        resources:
+          limits:
+            cpu: ${CPU_LIMIT_REPLICATION_SUBSCRIPTOR}
+            memory: ${MEMORY_LIMIT_REPLICATION_SUBSCRIPTOR}
+          requests:
+            cpu: ${CPU_REQUEST_REPLICATION_SUBSCRIPTOR}
+            memory: ${MEMORY_REQUEST_REPLICATION_SUBSCRIPTOR}
+    database:
+      sharedDbAppName: ${DB_NAME}
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdJobInvocation
+  metadata:
+    name: ${DEPENDENT_APP_NAME}-replication-subscriptor-${REPLICATION_SUBSCRIPTION_RUN_NUMBER}
+  spec:
+    appName: ${CLOWDAPP_NAME}
+    jobs:
+      - replication-subscription-runner
+
+parameters:
+- name: REPLICATION_SUBSCRIPTION_RUN_NUMBER
+  value: '1'
+- name: LOG_LEVEL
+  value: INFO
+- name: CPU_REQUEST_REPLICATION_SUBSCRIPTOR
+  value: 250m
+- name: CPU_LIMIT_REPLICATION_SUBSCRIPTOR
+  value: 500m
+- name: MEMORY_REQUEST_REPLICATION_SUBSCRIPTOR
+  value: 256Mi
+- name: MEMORY_LIMIT_REPLICATION_SUBSCRIPTOR
+  value: 512Mi
+- description: Image tag
+  name: IMAGE_TAG
+  required: true
+- description: Image NAME
+  name: IMAGE_NAME
+  required: true
+  value: quay.io/cloudservices/insights-inventory
+- description : ClowdEnvironment name
+  name: ENV_NAME
+  value: stage
+- description: ClowdApp name
+  name: CLOWDAPP_NAME
+  value: sample-relication-subscriptor
+- name: DB_NAME
+  required: true
+- name: DEPENDENT_APP_NAME
+  required: true
