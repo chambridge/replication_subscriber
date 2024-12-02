@@ -15,11 +15,13 @@ objects:
     - name: "replication-subscription-runner"
       restartPolicy: Never
       podSpec:
-        image: ${INVENTORY_IMAGE}:${INVENTORY_IMAGE_TAG}
-        args: ["./replication_subscription/runner.py"]
+        image: ${IMAGE_NAME}:${IMAGE_TAG}
+        args: ["./replication_subscriber/runner.py"]
         env:
-          - name: ILOG_LEVEL
+          - name: LOG_LEVEL
             value: ${LOG_LEVEL}
+          - name: DB_SSL_MODE
+            value: ${DB_SSL_MODE}
           - name: CLOWDER_ENABLED
             value: "true"
         resources:
@@ -56,16 +58,19 @@ parameters:
 - description: Image tag
   name: IMAGE_TAG
   required: true
+  value: latest
 - description: Image NAME
   name: IMAGE_NAME
   required: true
-  value: quay.io/cloudservices/insights-inventory
+  value: quay.io/chambrid/replication_subscriber
 - description : ClowdEnvironment name
   name: ENV_NAME
   value: stage
 - description: ClowdApp name
   name: CLOWDAPP_NAME
   value: sample-relication-subscriptor
+- name: DB_SSL_MODE
+  value: prefer
 - name: DB_NAME
   required: true
 - name: DEPENDENT_APP_NAME
