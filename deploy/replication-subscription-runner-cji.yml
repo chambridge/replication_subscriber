@@ -12,7 +12,7 @@ objects:
     dependencies:
       - ${DEPENDENT_APP_NAME}
     jobs:
-    - name: "replication-subscription-runner"
+    - name: "replication-runner"
       restartPolicy: Never
       podSpec:
         image: ${IMAGE_NAME}:${IMAGE_TAG}
@@ -36,11 +36,11 @@ objects:
 - apiVersion: cloud.redhat.com/v1alpha1
   kind: ClowdJobInvocation
   metadata:
-    name: ${DEPENDENT_APP_NAME}-replication-subscriptor-${REPLICATION_SUBSCRIPTION_RUN_NUMBER}
+    name: sample-replication-${REPLICATION_SUBSCRIPTION_RUN_NUMBER}
   spec:
     appName: ${CLOWDAPP_NAME}
     jobs:
-      - replication-subscription-runner
+      - replication-runner
 
 parameters:
 - name: REPLICATION_SUBSCRIPTION_RUN_NUMBER
@@ -68,7 +68,7 @@ parameters:
   value: stage
 - description: ClowdApp name
   name: CLOWDAPP_NAME
-  value: sample-relication-subscriptor
+  value: sample-relicator
 - name: DB_SSL_MODE
   value: prefer
 - name: DB_NAME
