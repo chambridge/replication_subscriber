@@ -27,7 +27,8 @@ RUN python3 -m pip install --upgrade pip setuptools wheel && \
     python3 -m pip install pipenv && \
     python3 -m pip install dumb-init && \
     python3 -m pip install sqlalchemy && \
-    python3 -m pip install app-common-python
+    python3 -m pip install app-common-python && \
+    python3 -m pip install psycopg2
 
 # remove devel packages that were only necessary for psycopg2 to compile
 # RUN microdnf remove -y $( comm -13 packages-before-devel-install.txt packages-after-devel-install.txt ) python39-setuptools && \
