@@ -22,6 +22,12 @@ __all__ = ("main", "run")
 LOGGER_NAME = "replication-subscription-runner"
 SSL_VERIFY_FULL = "verify-full"
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+
 
 class ShutdownHandler:
     def __init__(self):
