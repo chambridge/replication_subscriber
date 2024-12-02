@@ -16,7 +16,7 @@ objects:
       restartPolicy: Never
       podSpec:
         image: ${INVENTORY_IMAGE}:${INVENTORY_IMAGE_TAG}
-        args: ["./replication_subscription_runner.py"]
+        args: ["./replication_subscription/runner.py"]
         env:
           - name: ILOG_LEVEL
             value: ${LOG_LEVEL}
