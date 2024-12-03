@@ -34,10 +34,10 @@ objects:
             cpu: ${CPU_REQUEST_REPLICATION_SUBSCRIPTOR}
             memory: ${MEMORY_REQUEST_REPLICATION_SUBSCRIPTOR}
         volumeMounts:
-        - mountPath: /etc/db/hbi
+          - mountPath: /etc/db/hbi
             name: host-inventory-db
             readOnly: true
-          volumes:
+        volumes:
           - name: host-inventory-db
             secret:
               items:
