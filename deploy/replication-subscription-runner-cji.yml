@@ -24,6 +24,8 @@ objects:
             value: ${DB_SSL_MODE}
           - name: CLOWDER_ENABLED
             value: "true"
+          - name: HBI_PUBLICATION
+            value: ${HBI_PUBLICATION}
         resources:
           limits:
             cpu: ${CPU_LIMIT_REPLICATION_SUBSCRIPTOR}
@@ -31,6 +33,26 @@ objects:
           requests:
             cpu: ${CPU_REQUEST_REPLICATION_SUBSCRIPTOR}
             memory: ${MEMORY_REQUEST_REPLICATION_SUBSCRIPTOR}
+        volumeMounts:
+        - mountPath: /etc/db/hbi
+            name: host-inventory-db
+            readOnly: true
+          volumes:
+          - name: host-inventory-db
+            secret:
+              items:
+              - key: db.host
+                path: db_host
+              - key: db.name
+                path: db_name
+              - key: db.password
+                path: db_password
+              - key: db.port
+                path: db_port
+              - key: db.user
+                path: db_user
+              secretName: ${HBI_DB_SECRET}
+              optional: true
     database:
       sharedDbAppName: ${DB_NAME}
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -75,3 +97,7 @@ parameters:
   required: true
 - name: DEPENDENT_APP_NAME
   required: true
+- name: HBI_DB_SECRET
+  value: host-inventory-db
+- name: HBI_PUBLICATION
+  value: hbi_hosts_pub

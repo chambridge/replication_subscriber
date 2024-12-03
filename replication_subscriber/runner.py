@@ -13,13 +13,15 @@ from signal import signal
 from sqlalchemy import create_engine
 from sqlalchemy import text as sa_text
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.sql import exists
+from sqlalchemy.sql import select
 
 import app_common_python
 
 
 __all__ = ("main", "run")
 
-LOGGER_NAME = "replication-subscription-runner"
+LOGGER_NAME = "replication-subscriber"
 SSL_VERIFY_FULL = "verify-full"
 
 logging.basicConfig(
@@ -80,9 +82,72 @@ def _excepthook(logger, type, value, traceback):
     logger.exception("Replication subcription job failed", exc_info=value)
 
 
+def check_or_create_hosts_tables(logger, session):
+    if not exists(select([("table_name")]).select_from("information_schema.tables").where("schema_name == 'hbi' AND table_name =='hosts'")):
+        logger.info("hbi.hosts not found.")
+        hosts_table_create = """CREATE TABLE hbi.hosts (
+            id uuid NOT NULL,
+            account character varying(10),
+            display_name character varying(200),
+            created_on timestamp with time zone NOT NULL,
+            modified_on timestamp with time zone NOT NULL,
+            facts jsonb,
+            tags jsonb,
+            canonical_facts jsonb NOT NULL,
+            system_profile_facts jsonb,
+            ansible_host character varying(255),
+            stale_timestamp timestamp with time zone NOT NULL,
+            reporter character varying(255) NOT NULL,
+            per_reporter_staleness jsonb DEFAULT '{}'::jsonb NOT NULL,
+            org_id character varying(36) NOT NULL,
+            groups jsonb NOT NULL
+        );"""
+        session.execute(hosts_table_create)
+        logger.info("hbi.hosts created.")
+
+
+def check_or_create_schema(logger, session):
+    if not exists(select([("schema_name")]).select_from("information_schema.schemata").where("schema_name == 'hbi'")):
+        logger.info("hbi schema not found.")
+        session.execute("CREATE SCHEMA IF NOT EXISTS hbi")
+        logger.info("hbi schema created.")
+    check_or_create_hosts_tables(logger, session)
+
+
+def check_or_create_subscription(logger, session):
+    if exists(select([("subname")]).select_from("pg_subscription").where("subname == 'hbi_hosts_sub'")):
+        logger.debug("hbi_hosts_sub found.")
+        return
+    logger.info("hbi_hosts_sub not found.")
+    hbi_file_list = [
+            "/etc/db/hbi/db_host",
+            "/etc/db/hbi/db_port",
+            "/etc/db/hbi/db_name",
+            "/etc/db/hbi/db_user",
+            "/etc/db/hbi/db_password",
+        ]
+    if all(list(map(os.path.isfile, hbi_file_list))):
+        logger.info("HBI secret files exist.")
+        with open("/etc/db/hbi/db_host") as file:
+            hbi_host = file.read().rstrip()
+        with open("/etc/db/hbi/db_port") as file:
+            hbi_port = file.read().rstrip()
+        with open("/etc/db/hbi/db_name") as file:
+            hbi_db_name = file.read().rstrip()
+        with open("/etc/db/hbi/db_user") as file:
+            hbi_user = file.read().rstrip()
+        with open("/etc/db/hbi/db_password") as file:
+            hbi_password = file.read().rstrip()
+    hbi_publication = os.getenv("HBI_PUBLICATION", "hbi_hosts_pub")
+    subscription_create = "CREATE SUBSCRIPTION hbi_hosts_sub CONNECTION 'host=" + hbi_host + " port=" + hbi_port + " user=" + hbi_user + " dbname=" + hbi_db_name + " password=" + hbi_password + "' PUBLICATION " +  hbi_publication+ ";"
+    session.execute(subscription_create)
+    logger.info("hbi_hosts_sub created.")
+
 def run(logger, session):
     logger.info("Starting replication subcription runner")
-
+    check_or_create_schema(logger, session)
+    check_or_create_subscription(logger, session)
+    check_or_create_subscription(logger, session)
     logger.info("Finishing replication subcription runner")
 
 
