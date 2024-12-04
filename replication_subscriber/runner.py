@@ -73,7 +73,7 @@ def _init_config():
 
 def _init_db(db_uri):
     engine = create_engine(db_uri)
-    return sessionmaker(bind=engine)
+    return sessionmaker(bind=engine), engine
 
 
 def _excepthook(logger, type, value, traceback):
@@ -123,7 +123,7 @@ def check_or_create_schema(logger, session):
     check_or_create_hosts_tables(logger, session)
 
 
-def check_or_create_subscription(logger, session):
+def check_or_create_subscription(logger, session, engine):
     check_subscription = "SELECT subname FROM pg_subscription WHERE subname = 'hbi_hosts_sub'"
     if _db_exists(logger, session, check_subscription):
         logger.debug("hbi_hosts_sub found.")
@@ -150,27 +150,27 @@ def check_or_create_subscription(logger, session):
             hbi_password = file.read().rstrip()
     hbi_publication = os.getenv("HBI_PUBLICATION", "hbi_hosts_pub")
     subscription_create = "CREATE SUBSCRIPTION hbi_hosts_sub CONNECTION 'host=" + hbi_host + " port=" + hbi_port + " user=" + hbi_user + " dbname=" + hbi_db_name + " password=" + hbi_password + "' PUBLICATION " +  hbi_publication+ ";"
-    session.execute(sa_text(subscription_create))
-    session.commit()
-    logger.info("hbi_hosts_sub created.")
+    with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as connection:
+        connection.execute(sa_text(subscription_create))
+        logger.info("hbi_hosts_sub created.")
 
-def run(logger, session):
+
+def run(logger, session, engine):
     logger.info("Starting replication subcription runner")
     check_or_create_schema(logger, session)
-    check_or_create_subscription(logger, session)
-    check_or_create_subscription(logger, session)
+    check_or_create_subscription(logger, session, engine)
     logger.info("Finishing replication subcription runner")
 
 
 def main(logger):
     db_uri = _init_config()
-    Session = _init_db(db_uri)
+    Session, engine = _init_db(db_uri)
     session = Session()
     register_shutdown(session.get_bind().dispose, "Closing database")
 
     shutdown_handler = ShutdownHandler()
     shutdown_handler.register()
-    run(logger, session)
+    run(logger, session, engine)
 
 
 if __name__ == "__main__":
