@@ -88,7 +88,7 @@ def _db_exists(logger, session, sql):
 
 
 def check_or_create_hosts_tables(logger, session):
-    check_table = "SELECT table_name FROM information_schema.tables WHERE schema_name = 'hbi' AND table_name ='hosts'"
+    check_table = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'hbi' AND table_name ='hosts'"
     if not _db_exists(logger, session, check_table):
         logger.info("hbi.hosts not found.")
         hosts_table_create = """CREATE TABLE hbi.hosts (
