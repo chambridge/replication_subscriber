@@ -13,6 +13,9 @@ objects:
       - ${DEPENDENT_APP_NAME}
     jobs:
     - name: "replication-runner"
+      schedule: ${REPLICATION_SUBSCRIPTOR_CRON_SCHEDULE}
+      concurrencyPolicy: "Forbid"
+      suspend: ${{REPLICATION_SUBSCRIPTOR_SUSPEND}}
       restartPolicy: Never
       podSpec:
         image: ${IMAGE_NAME}:${IMAGE_TAG}
@@ -55,18 +58,8 @@ objects:
               optional: true
     database:
       sharedDbAppName: ${DB_NAME}
-- apiVersion: cloud.redhat.com/v1alpha1
-  kind: ClowdJobInvocation
-  metadata:
-    name: sample-replication-${REPLICATION_SUBSCRIPTION_RUN_NUMBER}
-  spec:
-    appName: ${CLOWDAPP_NAME}
-    jobs:
-      - replication-runner
 
 parameters:
-- name: REPLICATION_SUBSCRIPTION_RUN_NUMBER
-  value: '1'
 - name: LOG_LEVEL
   value: INFO
 - name: CPU_REQUEST_REPLICATION_SUBSCRIPTOR
@@ -101,3 +94,7 @@ parameters:
   value: host-inventory-db
 - name: HBI_PUBLICATION
   value: hbi_hosts_pub
+- name: REPLICATION_SUBSCRIPTOR_SUSPEND
+  value: 'false'
+- name: REPLICATION_SUBSCRIPTOR_CRON_SCHEDULE
+  value: '*/5 * * * *'
