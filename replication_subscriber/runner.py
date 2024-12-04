@@ -109,6 +109,7 @@ def check_or_create_hosts_tables(logger, session):
             groups jsonb NOT NULL
         );"""
         session.execute(sa_text(hosts_table_create))
+        session.commit()
         logger.info("hbi.hosts created.")
 
 
@@ -117,6 +118,7 @@ def check_or_create_schema(logger, session):
     if not _db_exists(logger, session, check_schema):
         logger.info("hbi schema not found.")
         session.execute(sa_text("CREATE SCHEMA IF NOT EXISTS hbi"))
+        session.commit()
         logger.info("hbi schema created.")
     check_or_create_hosts_tables(logger, session)
 
@@ -149,6 +151,7 @@ def check_or_create_subscription(logger, session):
     hbi_publication = os.getenv("HBI_PUBLICATION", "hbi_hosts_pub")
     subscription_create = "CREATE SUBSCRIPTION hbi_hosts_sub CONNECTION 'host=" + hbi_host + " port=" + hbi_port + " user=" + hbi_user + " dbname=" + hbi_db_name + " password=" + hbi_password + "' PUBLICATION " +  hbi_publication+ ";"
     session.execute(sa_text(subscription_create))
+    session.commit()
     logger.info("hbi_hosts_sub created.")
 
 def run(logger, session):
