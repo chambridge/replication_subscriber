@@ -13,8 +13,6 @@ from signal import signal
 from sqlalchemy import create_engine
 from sqlalchemy import text as sa_text
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.sql import exists
-from sqlalchemy.sql import select
 
 import app_common_python
 
@@ -82,8 +80,15 @@ def _excepthook(logger, type, value, traceback):
     logger.exception("Replication subcription job failed", exc_info=value)
 
 
+def _db_exists(logger, session, sql):
+    logger.debug(f"exists sql: {sql}")
+    results  = session.execute(sa_text(sql))
+    return len(results)
+
+
 def check_or_create_hosts_tables(logger, session):
-    if not session.query(exists(select(sa_text("table_name")).select_from(sa_text("information_schema.tables")).where(sa_text("schema_name == 'hbi' AND table_name =='hosts'")))).scalar():
+    check_table = "SELECT table_name FROM information_schema.tables WHERE schema_name = 'hbi' AND table_name ='hosts'"
+    if not _db_exists(logger, session, check_table):
         logger.info("hbi.hosts not found.")
         hosts_table_create = """CREATE TABLE hbi.hosts (
             id uuid NOT NULL,
@@ -107,7 +112,8 @@ def check_or_create_hosts_tables(logger, session):
 
 
 def check_or_create_schema(logger, session):
-    if not session.query(exists(select(sa_text("schema_name")).select_from(sa_text("information_schema.schemata")).where(sa_text("schema_name == 'hbi'")))).scalar():
+    check_schema = "SELECT schema_name FROM information_schema.schemata WHERE schema_name = 'hbi'"
+    if not _db_exists(logger, session, check_schema):
         logger.info("hbi schema not found.")
         session.execute("CREATE SCHEMA IF NOT EXISTS hbi")
         logger.info("hbi schema created.")
@@ -115,7 +121,8 @@ def check_or_create_schema(logger, session):
 
 
 def check_or_create_subscription(logger, session):
-    if session.query(exists(select(sa_text("subname")).select_from(sa_text("pg_subscription")).where(sa_text("subname == 'hbi_hosts_sub'")))).scalar():
+    check_subscription = "SELECT subname FROM pg_subscription WHERE subname = 'hbi_hosts_sub'"
+    if _db_exists(logger, session, check_subscription):
         logger.debug("hbi_hosts_sub found.")
         return
     logger.info("hbi_hosts_sub not found.")
