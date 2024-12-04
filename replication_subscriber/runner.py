@@ -83,7 +83,8 @@ def _excepthook(logger, type, value, traceback):
 def _db_exists(logger, session, sql):
     logger.debug(f"exists sql: {sql}")
     results  = session.execute(sa_text(sql))
-    return len(results)
+    rows = results.fetchall()
+    return len(rows)
 
 
 def check_or_create_hosts_tables(logger, session):
