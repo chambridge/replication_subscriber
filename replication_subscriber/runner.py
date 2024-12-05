@@ -167,9 +167,9 @@ def check_or_create_subscription(logger, session, engine):
     hbi_subscription = os.getenv("HBI_SUBSCRIPTION", "hbi_hosts_sub")
     check_subscription = "SELECT subname FROM pg_subscription WHERE subname = '" + hbi_subscription + "'"
     if _db_exists(logger, session, check_subscription):
-        logger.debug("hbi_hosts_sub found.")
+        logger.debug(f"{hbi_subscription} found.")
         return
-    logger.info("hbi_hosts_sub not found.")
+    logger.info(f"{hbi_subscription} not found.")
     hbi_file_list = [
             "/etc/db/hbi/db_host",
             "/etc/db/hbi/db_port",
@@ -193,13 +193,39 @@ def check_or_create_subscription(logger, session, engine):
     subscription_create = "CREATE SUBSCRIPTION " + hbi_subscription + " CONNECTION 'host=" + hbi_host + " port=" + hbi_port + " user=" + hbi_user + " dbname=" + hbi_db_name + " password=" + hbi_password + "' PUBLICATION " +  hbi_publication+ ";"
     with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as connection:
         connection.execute(sa_text(subscription_create))
-        logger.info("hbi_hosts_sub created.")
+        logger.info(f"{hbi_subscription} created.")
+
+
+def alter_subscription(logger, engine):
+    alter_subscription = os.getenv("ALTER_SUBSCRIPTION")
+    if not alter_subscription:
+        return
+
+    hbi_subscription = os.getenv("HBI_SUBSCRIPTION", "hbi_hosts_sub")
+    alter_subscription_sql = "ALTER SUBSCRIPTION " + hbi_subscription + " " + alter_subscription
+    with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as connection:
+        connection.execute(sa_text(alter_subscription_sql))
+        logger.info(f"{hbi_subscription} altered to {alter_subscription}.")
+
+
+def drop_subscription(logger, engine):
+    drop_subscription = os.getenv("DROP_SUBSCRIPTION")
+    if not drop_subscription:
+        return
+
+    hbi_subscription = os.getenv("HBI_SUBSCRIPTION", "hbi_hosts_sub")
+    drop_subscription_sql = "DROP SUBSCRIPTION IF EXISTS " + hbi_subscription
+    with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as connection:
+        connection.execute(sa_text(drop_subscription_sql))
+        logger.info(f"{hbi_subscription} was dropped.")
 
 
 def run(logger, session, engine):
     logger.info("Starting replication subcription runner")
     check_or_create_schema(logger, session, engine)
     check_or_create_subscription(logger, session, engine)
+    alter_subscription(logger, engine)
+    drop_subscription(logger, engine)
     logger.info("Finishing replication subcription runner")
 
 
