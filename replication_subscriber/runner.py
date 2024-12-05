@@ -86,7 +86,7 @@ def _db_exists(logger, session, sql):
     rows = results.fetchall()
     return len(rows)
 
-def check_or_create_view(logger, session):
+def check_or_create_view(logger, engine):
     view_template = """CREATE OR REPLACE VIEW hbi.hosts AS SELECT
         id,
         account,
@@ -104,11 +104,11 @@ def check_or_create_view(logger, session):
         org_id,
         groups
     FROM hbi.hosts"""
-    session.execute(sa_text(view_template))
-    session.commit()
+    with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as connection:
+            connection.execute(sa_text(view_template))
 
 
-def check_or_create_indexes(logger, session):
+def check_or_create_indexes(logger, engine):
     db_indexes = ["CREATE INDEX CONCURRENTLY IF NOT EXISTS hostas_account_index ON hbi.hosts (account)",
     "CREATE INDEX CONCURRENTLY IF NOT EXISTS hosts_org_id_index ON hbi.hosts (org_id)",
     "CREATE INDEX CONCURRENTLY IF NOT EXISTS hosts_display_name_index ON hbi.hosts (display_name)",
@@ -121,8 +121,8 @@ def check_or_create_indexes(logger, session):
     "CREATE INDEX CONCURRENTLY IF NOT EXISTS hosts_org_id_id_index ON hbi.hosts (org_id,id)",
     "CREATE INDEX CONCURRENTLY IF NOT EXISTS hosts_groups_index ON hbi.hosts USING GIN (groups JSONB_PATH_OPS)"]
     for db_index in db_indexes:
-        session.execute(sa_text(db_index))
-    session.commit()
+         with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as connection:
+            connection.execute(sa_text(db_index))
 
 
 def check_or_create_hosts_tables(logger, session):
@@ -151,7 +151,7 @@ def check_or_create_hosts_tables(logger, session):
         logger.info("hbi.hosts created.")
 
 
-def check_or_create_schema(logger, session):
+def check_or_create_schema(logger, session, engine):
     check_schema = "SELECT schema_name FROM information_schema.schemata WHERE schema_name = 'hbi'"
     if not _db_exists(logger, session, check_schema):
         logger.info("hbi schema not found.")
@@ -159,8 +159,8 @@ def check_or_create_schema(logger, session):
         session.commit()
         logger.info("hbi schema created.")
     check_or_create_hosts_tables(logger, session)
-    check_or_create_indexes(logger, session)
-    check_or_create_view(logger, session)
+    check_or_create_indexes(logger, engine)
+    check_or_create_view(logger, engine)
 
 
 def check_or_create_subscription(logger, session, engine):
@@ -197,7 +197,7 @@ def check_or_create_subscription(logger, session, engine):
 
 def run(logger, session, engine):
     logger.info("Starting replication subcription runner")
-    check_or_create_schema(logger, session)
+    check_or_create_schema(logger, session, engine)
     check_or_create_subscription(logger, session, engine)
     logger.info("Finishing replication subcription runner")
 
