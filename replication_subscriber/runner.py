@@ -86,6 +86,44 @@ def _db_exists(logger, session, sql):
     rows = results.fetchall()
     return len(rows)
 
+def check_or_create_view(logger, session):
+    view_template = """CREATE OR REPLACE VIEW hbi.hosts AS SELECT
+        id,
+        account,
+        display_name,
+        created,
+        updated,
+        stale_timestamp,
+        stale_timestamp + INTERVAL '1' DAY * '7' AS stale_warning_timestamp,
+        stale_timestamp + INTERVAL '1' DAY * '14' AS culled_timestamp,
+        tags,
+        system_profile,
+        insights_id,
+        reporter,
+        per_reporter_staleness,
+        org_id,
+        groups
+    FROM hbi.hosts"""
+    session.execute(sa_text(view_template))
+    session.commit()
+
+
+def check_or_create_indexes(logger, session):
+    db_indexes = ["CREATE INDEX CONCURRENTLY IF NOT EXISTS hostas_account_index ON hbi.hosts (account)",
+    "CREATE INDEX CONCURRENTLY IF NOT EXISTS hosts_org_id_index ON hbi.hosts (org_id)",
+    "CREATE INDEX CONCURRENTLY IF NOT EXISTS hosts_display_name_index ON hbi.hosts (display_name)",
+    "CREATE INDEX CONCURRENTLY IF NOT EXISTS hosts_tags_index ON hbi.hosts USING GIN (tags JSONB_PATH_OPS)",
+    "CREATE INDEX CONCURRENTLY IF NOT EXISTS hosts_stale_timestamp_index ONvhbi.hosts (stale_timestamp)",
+    "CREATE INDEX CONCURRENTLY IF NOT EXISTS hosts_system_profile_index ON hbi.hostsvUSING GIN (system_profile JSONB_PATH_OPS)",
+    "CREATE INDEX CONCURRENTLY IF NOT EXISTS hosts_insights_id_index ON hbi.hosts (insights_id)",
+    "CREATE INDEX CONCURRENTLY IF NOT EXISTS hosts_insights_reporter_index ON hbi.hosts (reporter)",
+    "CREATE INDEX CONCURRENTLY IF NOT EXISTS hosts_per_reporter_staleness_index ON hbi.hosts USING GIN (per_reporter_staleness JSONB_PATH_OPS)",
+    "CREATE INDEX CONCURRENTLY IF NOT EXISTS hosts_org_id_id_index ON hbi.hosts (org_id,id)",
+    "CREATE INDEX CONCURRENTLY IF NOT EXISTS hosts_groups_index ON hbi.hosts USING GIN (groups JSONB_PATH_OPS)"]
+    for db_index in db_indexes:
+        session.execute(sa_text(db_index))
+    session.commit()
+
 
 def check_or_create_hosts_tables(logger, session):
     check_table = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'hbi' AND table_name ='hosts'"
@@ -121,6 +159,8 @@ def check_or_create_schema(logger, session):
         session.commit()
         logger.info("hbi schema created.")
     check_or_create_hosts_tables(logger, session)
+    check_or_create_indexes(logger, session)
+    check_or_create_view(logger, session)
 
 
 def check_or_create_subscription(logger, session, engine):
