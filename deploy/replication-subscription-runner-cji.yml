@@ -94,6 +94,8 @@ parameters:
   value: host-inventory-db
 - name: HBI_PUBLICATION
   value: hbi_hosts_pub
+- name: HBI_SUBSCRIPTION
+  required: true
 - name: REPLICATION_SUBSCRIPTOR_SUSPEND
   value: 'false'
 - name: REPLICATION_SUBSCRIPTOR_CRON_SCHEDULE

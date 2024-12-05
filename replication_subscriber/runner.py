@@ -91,14 +91,14 @@ def check_or_create_view(logger, engine):
         id,
         account,
         display_name,
-        created,
-        updated,
+        created_on as created,
+        modified_on asupdated,
         stale_timestamp,
         stale_timestamp + INTERVAL '1' DAY * '7' AS stale_warning_timestamp,
         stale_timestamp + INTERVAL '1' DAY * '14' AS culled_timestamp,
         tags,
-        system_profile,
-        insights_id,
+        system_profile_facts as system_profile,
+        canonical_facts ->> 'insights_id'::text as insights_id,
         reporter,
         per_reporter_staleness,
         org_id,
@@ -164,7 +164,8 @@ def check_or_create_schema(logger, session, engine):
 
 
 def check_or_create_subscription(logger, session, engine):
-    check_subscription = "SELECT subname FROM pg_subscription WHERE subname = 'hbi_hosts_sub'"
+    hbi_subscription = os.getenv("HBI_SUBSCRIPTION", "hbi_hosts_sub")
+    check_subscription = "SELECT subname FROM pg_subscription WHERE subname = '" + hbi_subscription + "'"
     if _db_exists(logger, session, check_subscription):
         logger.debug("hbi_hosts_sub found.")
         return
@@ -189,7 +190,7 @@ def check_or_create_subscription(logger, session, engine):
         with open("/etc/db/hbi/db_password") as file:
             hbi_password = file.read().rstrip()
     hbi_publication = os.getenv("HBI_PUBLICATION", "hbi_hosts_pub")
-    subscription_create = "CREATE SUBSCRIPTION hbi_hosts_sub CONNECTION 'host=" + hbi_host + " port=" + hbi_port + " user=" + hbi_user + " dbname=" + hbi_db_name + " password=" + hbi_password + "' PUBLICATION " +  hbi_publication+ ";"
+    subscription_create = "CREATE SUBSCRIPTION " + hbi_subscription + " CONNECTION 'host=" + hbi_host + " port=" + hbi_port + " user=" + hbi_user + " dbname=" + hbi_db_name + " password=" + hbi_password + "' PUBLICATION " +  hbi_publication+ ";"
     with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as connection:
         connection.execute(sa_text(subscription_create))
         logger.info("hbi_hosts_sub created.")
