@@ -29,6 +29,12 @@ objects:
             value: "true"
           - name: HBI_PUBLICATION
             value: ${HBI_PUBLICATION}
+          - name: HBI_SUBSCRIPTION
+            value: ${HBI_SUBSCRIPTION}
+          - name: ALTER_SUBSCRIPTION
+            value: ${ALTER_SUBSCRIPTION}
+          - name: DROP_SUBSCRIPTION
+            value: ${DROP_SUBSCRIPTION}
         resources:
           limits:
             cpu: ${CPU_LIMIT_REPLICATION_SUBSCRIPTOR}
@@ -100,3 +106,7 @@ parameters:
   value: 'false'
 - name: REPLICATION_SUBSCRIPTOR_CRON_SCHEDULE
   value: '*/5 * * * *'
+- name: ALTER_SUBSCRIPTION
+  value: ''
+- name: DROP_SUBSCRIPTION
+  value: ''
