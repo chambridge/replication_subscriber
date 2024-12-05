@@ -114,7 +114,7 @@ def check_or_create_indexes(logger, engine):
     "CREATE INDEX CONCURRENTLY IF NOT EXISTS hosts_display_name_index ON hbi.hosts (display_name)",
     "CREATE INDEX CONCURRENTLY IF NOT EXISTS hosts_tags_index ON hbi.hosts USING GIN (tags JSONB_PATH_OPS)",
     "CREATE INDEX CONCURRENTLY IF NOT EXISTS hosts_stale_timestamp_index ON hbi.hosts (stale_timestamp)",
-    "CREATE INDEX CONCURRENTLY IF NOT EXISTS hosts_system_profile_index ON hbi.hosts USING GIN (system_profile JSONB_PATH_OPS)",
+    "CREATE INDEX CONCURRENTLY IF NOT EXISTS hosts_system_profile_index ON hbi.hosts USING GIN (system_profile_facts JSONB_PATH_OPS)",
     "CREATE INDEX CONCURRENTLY IF NOT EXISTS hosts_insights_id_index ON hbi.hosts (insights_id)",
     "CREATE INDEX CONCURRENTLY IF NOT EXISTS hosts_insights_reporter_index ON hbi.hosts (reporter)",
     "CREATE INDEX CONCURRENTLY IF NOT EXISTS hosts_per_reporter_staleness_index ON hbi.hosts USING GIN (per_reporter_staleness JSONB_PATH_OPS)",
