@@ -87,7 +87,7 @@ def _db_exists(logger, session, sql):
     return len(rows)
 
 def check_or_create_view(logger, engine):
-    view_template = """CREATE OR REPLACE VIEW hbi.hosts AS SELECT
+    view_template = """CREATE OR REPLACE VIEW hbi.hosts_view AS SELECT
         id,
         account,
         display_name,
