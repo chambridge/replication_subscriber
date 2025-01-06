@@ -43,6 +43,9 @@ objects:
           - mountPath: /etc/db/hbi
             name: host-inventory-db
             readOnly: true
+          - mountPath: /etc/db/rdsclientca
+            name: rds-client-ca
+            readOnly: true
         volumes:
           - name: host-inventory-db
             secret:
@@ -58,6 +61,13 @@ objects:
               - key: db.user
                 path: db_user
               secretName: ${HBI_DB_SECRET}
+              optional: true
+          - name: rds-client-ca
+            secret:
+              items:
+              - key: rds-cacert
+                path: rds_cacert
+              secretName: rds-client-ca
               optional: true
     database:
       sharedDbAppName: ${DB_NAME}
