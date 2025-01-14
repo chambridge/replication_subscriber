@@ -189,8 +189,14 @@ def check_or_create_subscription(logger, session, engine):
             hbi_user = file.read().rstrip()
         with open("/etc/db/hbi/db_password") as file:
             hbi_password = file.read().rstrip()
+    db_ssl_mode = os.getenv("DB_SSL_MODE", "")
+    ssl_connect = ""
+    if db_ssl_mode and os.path.isfile("/etc/db/rdsclientca/rds_cacert"):
+        ssl_connect = " sslmode=" + db_ssl_mode + " sslcert=/etc/db/rdsclientca/rds_cacert"
     hbi_publication = os.getenv("HBI_PUBLICATION", "hbi_hosts_pub")
-    subscription_create = "CREATE SUBSCRIPTION " + hbi_subscription + " CONNECTION 'host=" + hbi_host + " port=" + hbi_port + " user=" + hbi_user + " dbname=" + hbi_db_name + " password=" + hbi_password + "' PUBLICATION " +  hbi_publication+ ";"
+    connection = "'host=" + hbi_host + " port=" + hbi_port + " user=" + hbi_user + " dbname=" + hbi_db_name + " password=" + hbi_password
+    connection += ssl_connect + "'"
+    subscription_create = "CREATE SUBSCRIPTION " + hbi_subscription + " CONNECTION " + connection + " PUBLICATION " +  hbi_publication+ ";"
     with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as connection:
         connection.execute(sa_text(subscription_create))
         logger.info(f"{hbi_subscription} created.")
