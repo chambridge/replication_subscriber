@@ -107,6 +107,65 @@ def check_or_create_view(logger, engine):
     with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as connection:
             connection.execute(sa_text(view_template))
 
+def check_or_create_view_alt(logger, engine):
+    view_template = """CREATE OR REPLACE VIEW hbi.hosts_alt_view AS SELECT
+        id,
+        account,
+        display_name,
+        created_on                                AS created,
+        modified_on                               AS updated,
+        stale_timestamp,
+        stale_timestamp + INTERVAL '1' DAY * '7'  AS stale_warning_timestamp,
+        stale_timestamp + INTERVAL '1' DAY * '14' AS culled_timestamp,
+        COALESCE(
+            (SELECT JSONB_AGG(
+                        JSONB_BUILD_OBJECT(
+                            'namespace', ns.namespace,
+                            'key', k.key,
+                            'value', v.value
+                        )
+                    )
+                FROM JSONB_OBJECT_KEYS(tags) AS ns(namespace),
+                    JSONB_EACH(tags -> ns.namespace) AS k(key, value),
+                    JSONB_ARRAY_ELEMENTS_TEXT(k.value) AS v(value)),
+            '[]'::jsonb
+        )                                         AS tags,
+        (SELECT JSONB_OBJECT_AGG(key, value)
+            FROM JSONB_EACH(system_profile_facts)
+            WHERE key IN (
+                        'ansible',
+                        'infrastructure_type',
+                        'host_type',
+                        'bootc_status',
+                        'rhc_client_id',
+                        'sap_sids',
+                        'bios_release_date',
+                        'system_update_method',
+                        'bios_vendor',
+                        'sap',
+                        'sap_system',
+                        'rhsm',
+                        'owner_id',
+                        'mssql',
+                        'bios_version',
+                        'operating_system'))       AS system_profile,
+        (canonical_facts ->> 'insights_id')::uuid AS insights_id,
+        reporter,
+        per_reporter_staleness || JSONB_BUILD_OBJECT(
+            'puptoo', per_reporter_staleness -> 'puptoo' || JSONB_BUILD_OBJECT(
+                'stale_warning_timestamp',
+                (per_reporter_staleness -> 'puptoo' ->> 'stale_timestamp')::timestamptz +
+                INTERVAL '6 days',
+                'culled_timestamp',
+                (per_reporter_staleness -> 'puptoo' ->> 'stale_timestamp')::timestamptz +
+                INTERVAL '13 days')
+                                    )               AS per_reporter_staleness,
+        org_id,
+        groups
+    FROM hbi.hosts"""
+    with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as connection:
+            connection.execute(sa_text(view_template))
+
 
 def check_or_create_indexes(logger, engine):
     db_indexes = ["CREATE INDEX CONCURRENTLY IF NOT EXISTS hostas_account_index ON hbi.hosts (account)",
@@ -161,6 +220,7 @@ def check_or_create_schema(logger, session, engine):
     check_or_create_hosts_tables(logger, session)
     check_or_create_indexes(logger, engine)
     check_or_create_view(logger, engine)
+    check_or_create_view_alt(logger, engine)
 
 
 def check_or_create_subscription(logger, session, engine):
