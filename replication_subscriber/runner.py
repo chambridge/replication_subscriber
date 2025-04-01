@@ -203,7 +203,9 @@ def check_or_create_hosts_tables(logger, session):
             reporter character varying(255) NOT NULL,
             per_reporter_staleness jsonb DEFAULT '{}'::jsonb NOT NULL,
             org_id character varying(36) NOT NULL,
-            groups jsonb NOT NULL
+            groups jsonb NOT NULL,
+            tags_alt jsonb,
+            last_check_in timestamp with time zone
         );"""
         session.execute(sa_text(hosts_table_create))
         session.commit()
