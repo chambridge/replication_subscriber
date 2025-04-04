@@ -117,7 +117,7 @@ parameters:
 - name: HBI_DB_SECRET
   value: host-inventory-db
 - name: HBI_PUBLICATION
-  value: hbi_hosts_pub
+  value: hbi_hosts_pub_v1_0_0
 - name: HBI_SUBSCRIPTION
   required: true
 - name: ALTER_SUBSCRIPTION
