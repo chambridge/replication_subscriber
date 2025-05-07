@@ -146,7 +146,9 @@ def check_or_create_hosts_tables(logger, session):
             org_id character varying(36) NOT NULL,
             groups jsonb NOT NULL,
             tags_alt jsonb,
-            last_check_in timestamp with time zone
+            last_check_in timestamp with time zone,
+            stale_warning_timestamp timestamp with time zone,
+            deletion_timestamp timestamp with time zone
         );"""
         session.execute(sa_text(hosts_table_create))
         session.commit()
